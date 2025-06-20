@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Interaktiv Norsk Quiz med Flere Spørsmålstyper</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+  body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0; padding: 0;
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    background: white;
+    max-width: 900px;
+    width: 100%;
+    border-radius: 15px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    padding: 2rem 2.5rem;
+  }
+
+  h1 {
+    text-align: center;
+    color: #444;
+    margin-bottom: 1rem;
+  }
+
+  .question {
+    background: #f9f9f9;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.6rem;
+    border-radius: 10px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.03);
+    transition: box-shadow 0.3s ease;
+  }
+  .question:hover {
+    box-shadow: 0 0 15px #ff6f91;
+  }
+
+  .question strong {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+    color: #ff6f91;
+  }
+
+  button {
+    display: block;
+    margin-top: 0.4rem;
+    background: #ff6f91;
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    max-width: 400px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+  }
+  button:hover:not(:disabled) {
+    background: #e05074;
+  }
+  button:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  input[type="text"] {
+    padding: 0.5rem;
+    width: 100%;
+    max-width: 400px;
+    border: 2px solid #ff6f91;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+  }
+
+  .nav-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .nav-buttons button {
+    width: auto;
+    max-width: 150px;
+  }
+
+  #score {
+    font-weight: 600;
+    color: #444;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  #progressBarContainer {
+    width: 100%;
+    background: #ffcee1;
+    height: 12px;
+    border-radius: 10px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+  }
+
+  #progressBar {
+    background: #ff6f91;
+    height: 100%;
+    width: 0%;
+    transition: width 0.5s ease;
+  }
+
+  #pageInfo {
+    text-align: center;
+    margin-top: 0.5rem;
+    color: #666;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Interaktiv Norsk Quiz med Flere Spørsmålstyper</h1>
+    <div id="score">Score: 0</div>
+    <div id="mainContent"></div>
+
+    <div id="progressBarContainer">
+      <div id="progressBar"></div>
+    </div>
+    <div id="pageInfo">Side 1 av 6</div>
+
+    <div class="nav-buttons">
+      <button id="prevBtn" disabled>Forrige</button>
+      <button id="nextBtn">Neste</button>
+      <button id="restartBtn" style="display:none;">Start på nytt</button>
+    </div>
+  </div>
+
+<script>
+  // Quiz data
+ const questions = [
+  // Page 1 (5 questions) - multiple choice
+  {
+    type: "multipleChoice",
+    question: "Hva betyr 'hund'?",
+    options: ["et dyr som ofte er menneskets beste venn", "noe du kan lese", "et sted hvor folk bor"],
+    answerIndex: 0
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva er preteritum av 'å spise'?",
+    options: ["spiser", "spiste", "spist"],
+    answerIndex: 1
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva er riktig oversettelse for 'beautiful'?",
+    options: ["vakker", "stygg", "rask"],
+    answerIndex: 0
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva betyr 'skole'?",
+    options: ["butikk", "skole", "restaurant"],
+    answerIndex: 1
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva er flertall av 'bok'?",
+    options: ["boker", "bøker", "bokene"],
+    answerIndex: 1
+  },
+
+  // Page 2 (5 questions) - true/false
+  {
+    type: "trueFalse",
+    question: "Ordet 'vindu' betyr 'window'.",
+    answer: true
+  },
+  {
+    type: "trueFalse",
+    question: "Preteritum av 'å løpe' er 'løpte'.",
+    answer: true
+  },
+  {
+    type: "trueFalse",
+    question: "Ordet 'katt' betyr 'dog'.",
+    answer: false
+  },
+  {
+    type: "trueFalse",
+    question: "På norsk heter 'apple' 'eple'.",
+    answer: true
+  },
+  {
+    type: "trueFalse",
+    question: "Ordet 'hus' betyr 'car'.",
+    answer: false
+  },
+
+  // Page 3 (5 questions) - fill in the blank
+  {
+    type: "fillBlank",
+    question: "Sett inn riktig form: Jeg ___ (å være) glad.",
+    correctAnswer: "er"
+  },
+  {
+    type: "fillBlank",
+    question: "Hva er den norske oversettelsen av 'thank you'?",
+    correctAnswer: "takk"
+  },
+  {
+    type: "fillBlank",
+    question: "Fullfør setningen: Han ___ (å ha) en bok.",
+    correctAnswer: "har"
+  },
+  {
+    type: "fillBlank",
+    question: "Hva heter 'cat' på norsk?",
+    correctAnswer: "katt"
+  },
+  {
+    type: "fillBlank",
+    question: "Oversett til norsk: 'Good morning'.",
+    correctAnswer: "god morgen"
+  },
+
+  // Page 4 (5 questions) - multiple choice
+  {
+    type: "multipleChoice",
+    question: "Hva er riktig form av verbet i preteritum: 'Vi ___ (å gå) til parken.'",
+    options: ["går", "gikk", "gått"],
+    answerIndex: 1
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva betyr 'bokhandel'?",
+    options: ["bookstore", "library", "school"],
+    answerIndex: 0
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva er riktig oversettelse for 'fast'?",
+    options: ["rask", "sakte", "stor"],
+    answerIndex: 0
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva heter 'table' på norsk?",
+    options: ["stol", "bord", "dør"],
+    answerIndex: 1
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva er flertall av 'bil'?",
+    options: ["biler", "bilene", "bil"],
+    answerIndex: 0
+  },
+
+  // Page 5 (5 questions) - true/false
+  {
+    type: "trueFalse",
+    question: "Ordet 'vann' betyr 'water'.",
+    answer: true
+  },
+  {
+    type: "trueFalse",
+    question: "Preteritum av 'å skrive' er 'skrev'.",
+    answer: true
+  },
+  {
+    type: "trueFalse",
+    question: "Ordet 'sol' betyr 'moon'.",
+    answer: false
+  },
+  {
+    type: "trueFalse",
+    question: "På norsk heter 'bird' 'fugl'.",
+    answer: true
+  },
+  {
+    type: "trueFalse",
+    question: "Ordet 'hatt' betyr 'hat'.",
+    answer: true
+  },
+
+  // Page 6 (5 questions) - fill in the blank
+  {
+    type: "fillBlank",
+    question: "Sett inn riktig form: De ___ (å være) trøtte.",
+    correctAnswer: "er"
+  },
+  {
+    type: "fillBlank",
+    question: "Hva er den norske oversettelsen av 'please'?",
+    correctAnswer: "vær så snill"
+  },
+  {
+    type: "fillBlank",
+    question: "Fullfør setningen: Vi ___ (å bo) i Oslo.",
+    correctAnswer: "bor"
+  },
+  {
+    type: "fillBlank",
+    question: "Hva heter 'dog' på norsk?",
+    correctAnswer: "hund"
+  },
+  {
+    type: "fillBlank",
+    question: "Oversett til norsk: 'Good night'.",
+    correctAnswer: "god natt"
+  },
+
+  // Page 7 (5 questions) - multiple choice
+  {
+    type: "multipleChoice",
+    question: "Hva er riktig oversettelse for 'cold'?",
+    options: ["varm", "kald", "stor"],
+    answerIndex: 1
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva betyr 'kjøkken'?",
+    options: ["kitchen", "bedroom", "bathroom"],
+    answerIndex: 0
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva heter 'chair' på norsk?",
+    options: ["bord", "stol", "vindu"],
+    answerIndex: 1
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva er preteritum av 'å se'?",
+    options: ["så", "ser", "sett"],
+    answerIndex: 0
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva er flertall av 'hus'?",
+    options: ["husene", "hus", "huser"],
+    answerIndex: 0
+  },
+
+  // Page 8 (5 questions) - true/false
+  {
+    type: "trueFalse",
+    question: "Ordet 'vår' betyr 'spring' (årstid).",
+    answer: true
+  },
+  {
+    type: "trueFalse",
+    question: "Preteritum av 'å høre' er 'hørt'.",
+    answer: false
+  },
+  {
+    type: "trueFalse",
+    question: "Ordet 'mor' betyr 'mother'.",
+    answer: true
+  },
+  {
+    type: "trueFalse",
+    question: "Ordet 'båt' betyr 'car'.",
+    answer: false
+  },
+  {
+    type: "trueFalse",
+    question: "På norsk heter 'sun' 'sol'.",
+    answer: true
+  },
+
+  // Page 9 (5 questions) - fill in the blank
+  {
+    type: "fillBlank",
+    question: "Sett inn riktig form: Jeg ___ (å ha) en katt.",
+    correctAnswer: "har"
+  },
+  {
+    type: "fillBlank",
+    question: "Hva er oversettelsen av 'friend'?",
+    correctAnswer: "venn"
+  },
+  {
+    type: "fillBlank",
+    question: "Fullfør setningen: Du ___ (å være) snill.",
+    correctAnswer: "er"
+  },
+  {
+    type: "fillBlank",
+    question: "Hva heter 'fish' på norsk?",
+    correctAnswer: "fisk"
+  },
+  {
+    type: "fillBlank",
+    question: "Oversett til norsk: 'Good afternoon'.",
+    correctAnswer: "god ettermiddag"
+  },
+
+  // Page 10 (5 questions) - multiple choice
+  {
+    type: "multipleChoice",
+    question: "Hva betyr 'reise'?",
+    options: ["to travel", "to eat", "to sleep"],
+    answerIndex: 0
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva er riktig oversettelse for 'happy'?",
+    options: ["trist", "glad", "sint"],
+    answerIndex: 1
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva heter 'window' på norsk?",
+    options: ["vindu", "dør", "tak"],
+    answerIndex: 0
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva er preteritum av 'å drikke'?",
+    options: ["drakk", "drikker", "drukket"],
+    answerIndex: 0
+  },
+  {
+    type: "multipleChoice",
+    question: "Hva er flertall av 'eple'?",
+    options: ["epler", "eple", "eplene"],
+    answerIndex: 0
+  }
+];
+
+  // Shuffle helper function
+  function shuffleArray(array) {
+    const arr = array.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  const pageSize = 5;
+  let currentPage = 1;
+  let score = 0;
+
+  // Shuffle questions at start
+  let randomizedQuestions = shuffleArray(questions);
+  const totalPages = Math.ceil(randomizedQuestions.length / pageSize);
+
+  // DOM references
+  const mainContent = document.getElementById("mainContent");
+  const scoreDisplay = document.getElementById("score");
+  const progressBar = document.getElementById("progressBar");
+  const pageInfo = document.getElementById("pageInfo");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const restartBtn = document.getElementById("restartBtn");
+
+  function disableButtons(questionDiv) {
+    const buttons = questionDiv.querySelectorAll("button");
+    buttons.forEach(btn => btn.disabled = true);
+  }
+
+  function updateScore() {
+    scoreDisplay.textContent = `Score: ${score}`;
+  }
+
+  function renderPage() {
+    mainContent.innerHTML = "";
+    pageInfo.textContent = `Side ${currentPage} av ${totalPages}`;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, randomizedQuestions.length);
+    const pageQuestions = randomizedQuestions.slice(startIndex, endIndex);
+
+    pageQuestions.forEach((q, idx) => {
+      const qDiv = document.createElement("div");
+      qDiv.classList.add("question");
+
+      switch (q.type) {
+        case "multipleChoice":
+          qDiv.innerHTML = `<strong>Spørsmål ${startIndex + idx + 1}:</strong> ${q.question}`;
+          q.options.forEach((opt, i) => {
+            const btn = document.createElement("button");
+            btn.textContent = opt;
+            btn.addEventListener("click", () => {
+              if (btn.disabled) return;
+              if (i === q.answerIndex) {
+                score++;
+                btn.style.backgroundColor = "#28a745"; // green
+              } else {
+                btn.style.backgroundColor = "#dc3545"; // red
+                qDiv.querySelectorAll("button")[q.answerIndex].style.backgroundColor = "#28a745";
+              }
+              disableButtons(qDiv);
+              updateScore();
+            });
+            qDiv.appendChild(btn);
+          });
+          break;
+
+        case "trueFalse":
+          qDiv.innerHTML = `<strong>Spørsmål ${startIndex + idx + 1}:</strong> ${q.question}`;
+          ["Sant", "Usant"].forEach((text, i) => {
+            const btn = document.createElement("button");
+            btn.textContent = text;
+            btn.addEventListener("click", () => {
+              if (btn.disabled) return;
+              const isTrue = (text === "Sant");
+              if (isTrue === q.answer) {
+                score++;
+                btn.style.backgroundColor = "#28a745";
+              } else {
+                btn.style.backgroundColor = "#dc3545";
+                // Highlight correct answer button
+                const correctBtn = qDiv.querySelectorAll("button")[q.answer ? 0 : 1];
+                correctBtn.style.backgroundColor = "#28a745";
+              }
+              disableButtons(qDiv);
+              updateScore();
+            });
+            qDiv.appendChild(btn);
+          });
+          break;
+
+        case "fillBlank":
+          qDiv.innerHTML = `<strong>Spørsmål ${startIndex + idx + 1}:</strong> ${q.question}`;
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Skriv inn svaret ditt her...";
+          qDiv.appendChild(input);
+          const submitBtn = document.createElement("button");
+          submitBtn.textContent = "Sjekk svar";
+          submitBtn.addEventListener("click", () => {
+            if (submitBtn.disabled) return;
+            const userAnswer = input.value.trim().toLowerCase();
+            const correctAnswer = q.correctAnswer.toLowerCase();
+            if (userAnswer === correctAnswer) {
+              score++;
+              submitBtn.style.backgroundColor = "#28a745";
+            } else {
+              submitBtn.style.backgroundColor = "#dc3545";
+              alert(`Feil! Riktig svar er: ${q.correctAnswer}`);
+            }
+            input.disabled = true;
+            submitBtn.disabled = true;
+            updateScore();
+          });
+          qDiv.appendChild(submitBtn);
+          break;
+
+        default:
+          qDiv.textContent = "Ukjent spørsmålstype.";
+      }
+
+      mainContent.appendChild(qDiv);
+    });
+
+    // Update progress bar
+    const progressPercent = (currentPage / totalPages) * 100;
+    progressBar.style.width = `${progressPercent}%`;
+
+    // Manage buttons visibility & state
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.style.display = currentPage === totalPages ? "none" : "inline-block";
+    restartBtn.style.display = currentPage === totalPages ? "inline-block" : "none";
+  }
+
+  prevBtn.addEventListener("click", () => {
+    if (currentPage > 1) {
+      currentPage--;
+      renderPage();
+    }
+  });
+
+  nextBtn.addEventListener("click", () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      renderPage();
+    }
+  });
+
+  restartBtn.addEventListener("click", () => {
+    score = 0;
+    updateScore();
+    randomizedQuestions = shuffleArray(questions);
+    currentPage = 1;
+    renderPage();
+  });
+
+  // Initial render
+  updateScore();
+  renderPage();
+</script>
+</body>
+</html>
